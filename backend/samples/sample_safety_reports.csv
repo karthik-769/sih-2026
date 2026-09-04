@@ -1,0 +1,6 @@
+Case ID,Job Role,Department,Location,Task,Incident Type,Date/Time,Description
+SIF001,Maintenance Worker,Mechanical,Unit A,Tank Maintenance,Near Miss,2026-09-01 10:30,"During maintenance, a worker entered a confined space without atmospheric testing. No standby person was present."
+SIF002,Technician,Mechanical,Unit B,Equipment Maintenance,Unsafe Condition,2026-09-01 11:15,A technician was working at height on a platform without proper fall protection or a secured safety harness.
+SIF003,Electrician,Electrical,Unit A,Electrical Maintenance,Unsafe Act,2026-09-01 14:00,An electrician began maintenance work without isolating the electrical supply. The equipment remained energized during the work.
+SIF004,Machine Operator,Mechanical,Unit A,Machine Operation,Unsafe Act,2026-09-02 09:20,A machine operator removed the machine guard to clear material while the machine was still running.
+SAFE001,Maintenance Worker,Mechanical,Unit C,Routine Inspection,Safety Observation,2026-09-02 15:45,Workers were wearing the required PPE and following the approved maintenance procedure during routine equipment inspection.
