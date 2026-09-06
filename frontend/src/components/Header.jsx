@@ -107,7 +107,7 @@ export const Header = () => {
                     user.role
                   )}`}
                 >
-                  {user.role}
+                  {user.role === 'ADMIN' ? 'SAFETY OFFICER' : user.role}
                 </span>
               </div>
             </div>

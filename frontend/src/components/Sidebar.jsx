@@ -12,7 +12,6 @@ import {
   UploadCloud,
   Clock,
   Download,
-  Users,
   Building2,
   ShieldAlert,
 } from 'lucide-react';
@@ -45,7 +44,7 @@ export const Sidebar = () => {
     },
   ];
 
-  // Admin navigation items
+  // Safety Officer / Admin navigation items
   const adminNavItems = [
     {
       to: '/',
@@ -59,7 +58,7 @@ export const Sidebar = () => {
     },
     {
       to: '/ai-analysis',
-      label: 'AI Analysis',
+      label: 'AI Model Evaluation',
       icon: BrainCircuit,
       badge: 'AI',
     },
@@ -100,11 +99,6 @@ export const Sidebar = () => {
       icon: Download,
     },
     {
-      to: '/users',
-      label: 'Users',
-      icon: Users,
-    },
-    {
       to: '/departments',
       label: 'Departments',
       icon: Building2,
@@ -128,7 +122,7 @@ export const Sidebar = () => {
         <div className="px-2 flex items-center justify-between">
           <div className="flex items-center gap-2 text-slate-800 font-semibold text-xs uppercase tracking-wider text-slate-400">
             <ShieldAlert className="w-4 h-4 text-slate-700" />
-            {sidebarOpen && <span>{isAdmin ? 'Admin Console' : 'Worker Portal'}</span>}
+            {sidebarOpen && <span>{isAdmin ? 'Safety Officer Console' : 'Worker Portal'}</span>}
           </div>
           {sidebarOpen && (
             <span
@@ -138,7 +132,7 @@ export const Sidebar = () => {
                   : 'bg-slate-100 text-slate-700 border-slate-200'
               }`}
             >
-              {role}
+              {role === 'ADMIN' ? 'SAFETY OFFICER' : role}
             </span>
           )}
         </div>
@@ -194,7 +188,7 @@ export const Sidebar = () => {
           </div>
           <p className="text-[10px] text-slate-500 leading-tight">
             {isAdmin
-              ? 'Authorized for full intelligence, exports, and administration.'
+              ? 'Authorized for full safety intelligence, early warnings, and oversight.'
               : 'Authorized for report submissions and personal tracking.'}
           </p>
         </div>

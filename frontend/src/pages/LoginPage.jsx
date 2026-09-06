@@ -26,11 +26,11 @@ export const LoginPage = () => {
       desc: 'Submit & view own safety reports',
     },
     {
-      role: 'ADMIN',
-      label: 'Admin Demo',
+      role: 'SAFETY OFFICER',
+      label: 'Safety Officer Demo',
       email: 'admin@safetyintelligence.internal',
       password: 'Admin@2026',
-      desc: 'Full administrative access & intelligence',
+      desc: 'Full safety intelligence, warnings & oversight',
     },
   ];
 
