@@ -70,7 +70,8 @@ export const LoginPage = () => {
       await login(acc.email, acc.password);
       navigate(from, { replace: true });
     } catch (err) {
-      setErrorMessage('Quick login failed. Ensure the backend server is running.');
+      const detail = err.response?.data?.error?.message || err.response?.data?.detail;
+      setErrorMessage(detail || 'Quick login failed. Ensure the backend server is running.');
     } finally {
       setLoading(false);
     }

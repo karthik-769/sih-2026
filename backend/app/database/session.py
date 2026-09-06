@@ -13,9 +13,14 @@ Base = declarative_base()
 
 def get_sqlite_fallback_url() -> str:
     """
-    Returns a unified SQLite database URL whether running from root or backend directory.
+    Returns a unified SQLite database URL whether running from root, backend, or Vercel serverless (/tmp).
     """
+    import os
     from pathlib import Path
+
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return "sqlite:////tmp/safety_intelligence.db"
+
     backend_dir = Path(__file__).resolve().parent.parent.parent
     db_file = backend_dir / "safety_intelligence.db"
     return f"sqlite:///{db_file.as_posix()}"
