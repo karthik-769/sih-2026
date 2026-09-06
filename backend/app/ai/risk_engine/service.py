@@ -14,22 +14,23 @@ class RiskEngineService(BaseRiskEngine):
         control_failures: List[Dict[str, Any]],
         exposure: Dict[str, Any],
         sif_result: SifDetectionResult,
+        consequence: Optional[Any] = None,
         context: Optional[Dict[str, Any]] = None,
     ) -> RiskEngineResult:
-        # Check for pure safe observation
+        # Check for pure safe observation or fully controlled practice with no failed barriers
         hazard_categories = {h.get("category") for h in hazards}
-        if "SAFE_OBSERVATION" in hazard_categories and len(control_failures) == 0 and not sif_result.sif_precursor:
+        if ("SAFE_OBSERVATION" in hazard_categories or len(control_failures) == 0) and not sif_result.sif_precursor:
             return RiskEngineResult(
-                risk_score=10.0,
+                risk_score=15.0,
                 risk_level="LOW",
                 scoring_breakdown={
                     "base_score": 10.0,
-                    "hazard_severity_pts": 0.0,
+                    "hazard_severity_pts": 5.0,
                     "control_failure_penalty_pts": 0.0,
                     "exposure_multiplier_pts": 0.0,
                     "sif_precursor_boost_pts": 0.0,
                     "synergy_pts": 0.0,
-                    "status": "Safe operational practice verified",
+                    "status": "Safe operational practice / controls verified intact",
                 },
                 is_prototype=False,
             )

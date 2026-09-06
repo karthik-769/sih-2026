@@ -20,6 +20,10 @@ class Pattern(Base):
     
     hazard_category = Column(String(100), nullable=True, index=True)
     sif_category = Column(String(100), nullable=True, index=True)
+    activity = Column(String(100), nullable=True, index=True)
+    activity_category = Column(String(100), nullable=True, index=True)
+    life_saving_rule = Column(String(100), nullable=True, index=True)
+    failed_barriers = Column(JSON, nullable=False, default=list)
     department_id = Column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
     location_id = Column(Integer, ForeignKey("locations.id", ondelete="SET NULL"), nullable=True, index=True)
     
@@ -30,6 +34,7 @@ class Pattern(Base):
     # Quantitative Metrics
     frequency_count = Column(Integer, nullable=False, default=0)
     sif_count = Column(Integer, nullable=False, default=0)
+    sif_density = Column(Float, nullable=False, default=0.0)       # (sif_count / frequency_count) * 100
     trend_percentage = Column(Float, nullable=False, default=0.0)  # e.g., +32.5%
     
     # Explainable factor weights breakdown

@@ -48,7 +48,8 @@ class HazardDetectionService(BaseHazardDetector):
             "category": "WORKING_AT_HEIGHT",
             "hazard_type": "Working at Height",
             "patterns": [
-                r"\bheight\b", r"\belevation\b", r"\bscaffold(?:ing)?\b", r"\bladder\b",
+                r"\bheight\b", r"\belevation\b", r"\belevated\b", r"\belevated\s+platform\b",
+                r"\bunprotected\s+edge\b", r"\bscaffold(?:ing)?\b", r"\bladder\b",
                 r"\broof\b", r"\bworking\s+platform\b", r"\bopen\s+edge\b", r"\bguardrail\b",
                 r"\b\d+\s*m(?:eter)?s?\s+(?:height|elevation|drop)\b", r"\bfall\s+protection\b"
             ],
@@ -191,7 +192,8 @@ class HazardDetectionService(BaseHazardDetector):
         # Contextual Hazard Synergy Logic
         # e.g., Confined Space without testing automatically triggers Toxic Gas & Oxygen Deficiency
         if "CONFINED_SPACE" in matched_categories and ("TOXIC_GAS" not in matched_categories or "OXYGEN_DEFICIENCY" not in matched_categories):
-            if "without atmospheric testing" in cleaned_lower or "no gas test" in cleaned_lower or "without gas testing" in cleaned_lower or "entered a confined space" in cleaned_lower:
+            is_gas_tested = "after gas testing" in cleaned_lower or "after atmospheric testing" in cleaned_lower or "gas testing completed" in cleaned_lower
+            if not is_gas_tested and ("without atmospheric testing" in cleaned_lower or "no gas test" in cleaned_lower or "without gas testing" in cleaned_lower or "untested" in cleaned_lower):
                 if "TOXIC_GAS" not in matched_categories:
                     detected.append({
                         "category": "TOXIC_GAS",

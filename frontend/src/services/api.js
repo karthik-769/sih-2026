@@ -297,6 +297,42 @@ export const getRiskMapApi = async () => {
   return response.data;
 };
 
+// SIF Intelligence & Advanced Analytics APIs
+export const getSifDensityApi = async (params = {}) => {
+  const response = await apiClient.get('/api/analytics/sif-density', { params });
+  return response.data;
+};
+
+export const getActivityAnalyticsApi = async (params = {}) => {
+  const response = await apiClient.get('/api/analytics/activities', { params });
+  return response.data;
+};
+
+export const getLifeSavingRulesAnalyticsApi = async (params = {}) => {
+  const response = await apiClient.get('/api/analytics/life-saving-rules', { params });
+  return response.data;
+};
+
+export const getBarrierFailuresAnalyticsApi = async (params = {}) => {
+  const response = await apiClient.get('/api/analytics/barrier-failures', { params });
+  return response.data;
+};
+
+export const getTrendsAnalyticsApi = async (params = {}) => {
+  const response = await apiClient.get('/api/analytics/trends', { params });
+  return response.data;
+};
+
+export const getAiEvaluationApi = async () => {
+  const response = await apiClient.get('/api/analytics/ai-evaluation');
+  return response.data;
+};
+
+export const reviewReportAnalysisApi = async (reportId, reviewData) => {
+  const response = await apiClient.post(`/api/reports/${reportId}/review`, reviewData);
+  return response.data;
+};
+
 // Milestone 3: Safety Reporting & Export APIs
 export const getReportSummaryApi = async (params = {}) => {
   const response = await apiClient.get('/api/reporting/summary', { params });

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database.session import Base
@@ -33,6 +33,19 @@ class SafetyReport(Base):
     source_row = Column(Integer, nullable=True)
     source_page = Column(Integer, nullable=True)
     import_batch_id = Column(Integer, ForeignKey("import_batches.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    # OIL Domain & Precursor Metadata
+    activity = Column(String(100), nullable=True, index=True)
+    activity_category = Column(String(100), nullable=True, index=True)
+    site = Column(String(100), nullable=True)
+    field = Column(String(100), nullable=True)
+    installation = Column(String(100), nullable=True)
+    actual_consequence = Column(String(100), nullable=True, default="No injury")
+    potential_consequence = Column(String(255), nullable=True)
+    fatality_potential = Column(Boolean, nullable=True, default=False)
+    life_saving_rule = Column(String(100), nullable=True, index=True)
+    failed_barrier = Column(String(255), nullable=True)
+    is_sif = Column(Boolean, nullable=True, default=None)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(

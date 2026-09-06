@@ -19,6 +19,12 @@ class ImportedRowPreview(BaseModel):
     validation_status: str = Field(default="VALID", description="VALID, WARNING, or ERROR")
     validation_messages: List[str] = Field(default_factory=list, description="Explanations for warning or error state")
     is_duplicate: bool = Field(default=False, description="True if case_id already exists in database")
+    is_sif: Optional[bool] = Field(default=None, description="Ground truth SIF label if present")
+    life_saving_rule: Optional[str] = Field(default=None, description="Ground truth Life-Saving Rule if present")
+    failed_barrier: Optional[str] = Field(default=None, description="Ground truth failed barrier if present")
+    actual_consequence: Optional[str] = Field(default=None, description="Ground truth actual consequence if present")
+    potential_consequence: Optional[str] = Field(default=None, description="Ground truth potential consequence if present")
+    fatality_potential: Optional[bool] = Field(default=None, description="Ground truth fatality potential if present")
 
 
 class ImportPreviewResponse(BaseModel):

@@ -19,6 +19,10 @@ import {
   AlertCircle,
   Users,
   ShieldCheck,
+  Shield,
+  Activity,
+  MapPin,
+  HelpCircle,
 } from 'lucide-react';
 import {
   getAnalyticsKpisApi,
@@ -29,6 +33,10 @@ import {
   getPatternsApi,
   getReportsApi,
   getCorrectiveActionsApi,
+  getSifDensityApi,
+  getActivityAnalyticsApi,
+  getLifeSavingRulesAnalyticsApi,
+  getBarrierFailuresAnalyticsApi,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -42,9 +50,12 @@ export const DashboardPlaceholder = () => {
   const [kpis, setKpis] = useState(null);
   const [trends, setTrends] = useState([]);
   const [hazards, setHazards] = useState([]);
-  const [sifData, setSifData] = useState(null);
+  const [sifDensity, setSifDensity] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [patterns, setPatterns] = useState([]);
+  const [topActivities, setTopActivities] = useState([]);
+  const [topLSRs, setTopLSRs] = useState([]);
+  const [topBarriers, setTopBarriers] = useState([]);
 
   // Worker state
   const [workerReports, setWorkerReports] = useState([]);
@@ -56,21 +67,37 @@ export const DashboardPlaceholder = () => {
     setLoading(true);
     try {
       if (isAdmin) {
-        const [kpiRes, trendRes, hazRes, sifRes, alertsRes, patternsRes] = await Promise.all([
+        const [
+          kpiRes,
+          trendRes,
+          hazRes,
+          sifDensityRes,
+          alertsRes,
+          patternsRes,
+          actRes,
+          lsrRes,
+          barRes,
+        ] = await Promise.all([
           getAnalyticsKpisApi().catch(() => null),
           getRiskTrendApi(4).catch(() => []),
           getHazardTrendApi().catch(() => []),
-          getSifTrendApi().catch(() => null),
+          getSifDensityApi().catch(() => null),
           getAlertsApi({ page: 1, page_size: 4 }).catch(() => ({ items: [] })),
           getPatternsApi({ page: 1, page_size: 4 }).catch(() => ({ items: [] })),
+          getActivityAnalyticsApi().catch(() => []),
+          getLifeSavingRulesAnalyticsApi().catch(() => []),
+          getBarrierFailuresAnalyticsApi().catch(() => []),
         ]);
 
         setKpis(kpiRes);
         setTrends(trendRes || []);
         setHazards(hazRes || []);
-        setSifData(sifRes);
+        setSifDensity(sifDensityRes);
         setAlerts(alertsRes?.items || []);
         setPatterns(patternsRes?.items || []);
+        setTopActivities(actRes?.slice(0, 5) || []);
+        setTopLSRs(lsrRes?.slice(0, 5) || []);
+        setTopBarriers(barRes?.slice(0, 5) || []);
       } else {
         // Worker-specific personal queries
         const [reportsRes, actionsRes] = await Promise.all([
@@ -143,7 +170,7 @@ export const DashboardPlaceholder = () => {
               Welcome, {user?.name || 'Worker'}
             </h1>
             <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-              Submit observations, track automated AI hazard evaluations for your reports, and monitor personal safety resolutions.
+              Submit safety observations, track automated AI hazard evaluations for your reports, and monitor personal safety resolutions.
             </p>
           </div>
 
@@ -289,15 +316,15 @@ export const DashboardPlaceholder = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
-              Admin Safety Intelligence Center
+              OIL SIF Precursor Intelligence Platform
             </span>
-            <span className="text-xs font-semibold text-slate-500">Enterprise AI Engine</span>
+            <span className="text-xs font-semibold text-slate-500">Enterprise AI / NLP Engine</span>
           </div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Welcome back, {user?.name || 'Administrator'}
+            Safety Intelligence Command Center
           </h1>
           <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-            Real-time proactive safety intelligence, systemic pattern recognition, early warning indicators, and corrective workflows.
+            Real-time proactive safety intelligence, IOGP Life-Saving Rules compliance, barrier failure tracking, and SIF precursor density analytics.
           </p>
         </div>
 
@@ -319,12 +346,12 @@ export const DashboardPlaceholder = () => {
         </div>
       </div>
 
-      {/* Top 4 KPI Cards */}
+      {/* Top 4 Core KPI Cards with Dynamic Calculations */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Safety Reports */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Safety Reports</span>
+            <span className="font-semibold">Total Safety Reports</span>
             <FileText className="w-4 h-4 text-slate-400" />
           </div>
           <div className="text-2xl font-extrabold text-slate-900">
@@ -347,10 +374,24 @@ export const DashboardPlaceholder = () => {
             <Flame className="w-4 h-4 text-rose-600" />
           </div>
           <div className="text-2xl font-extrabold text-rose-700">
-            {kpis ? kpis.sif_precursors_count : '—'}
+            {sifDensity ? sifDensity.total_sif_precursors : (kpis ? kpis.sif_precursors_count : '—')}
           </div>
           <div className="text-[11px] text-rose-600 font-medium">
-            {sifData?.sif_percentage || 0}% of analyzed incident cases
+            High-energy hazard + worker exposure
+          </div>
+        </div>
+
+        {/* SIF Precursor Density % */}
+        <div className="bg-white border border-purple-200 rounded-xl p-4 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-xs text-purple-700 font-semibold">
+            <span>SIF Density %</span>
+            <TrendingUp className="w-4 h-4 text-purple-600" />
+          </div>
+          <div className="text-2xl font-extrabold text-purple-700">
+            {sifDensity ? `${sifDensity.overall_density}%` : '—'}
+          </div>
+          <div className="text-[11px] text-purple-600 font-mono">
+            (SIF / Total) &times; 100
           </div>
         </div>
 
@@ -371,28 +412,76 @@ export const DashboardPlaceholder = () => {
             <ChevronRight className="w-3 h-3" />
           </div>
         </div>
+      </div>
 
-        {/* Open Corrective Actions */}
-        <div
-          className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-2 cursor-pointer hover:border-slate-400 transition-colors"
-          onClick={() => navigate('/corrective-actions')}
-        >
-          <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Open Corrective Actions</span>
-            <CheckCircle2 className="w-4 h-4 text-slate-400" />
+      {/* Answer the 5 Core Questions: 2-Column Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Core Question 2: Top Life-Saving Rules Mapped */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-indigo-600" />
+              <h3 className="text-sm font-bold text-slate-900">Top Life-Saving Rules Implicated</h3>
+            </div>
+            <Link to="/analytics" className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+              <span>View All</span>
+              <ChevronRight className="w-3 h-3" />
+            </Link>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">
-            {kpis ? kpis.open_actions_count : '—'}
-          </div>
-          <div className="text-[11px] text-slate-500 flex items-center justify-between">
-            {kpis?.overdue_actions_count > 0 ? (
-              <span className="text-rose-600 font-bold flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> {kpis.overdue_actions_count} Overdue
-              </span>
+          <div className="space-y-3">
+            {topLSRs.length === 0 ? (
+              <p className="text-xs text-slate-400 italic py-2">No Life-Saving Rules recorded yet.</p>
             ) : (
-              <span className="text-emerald-600 font-semibold">0 Overdue Actions</span>
+              topLSRs.map((lsr, idx) => (
+                <div key={idx} className="space-y-1 text-xs">
+                  <div className="flex items-center justify-between font-medium">
+                    <span className="font-bold text-slate-900">{lsr.rule}</span>
+                    <span className="text-slate-500">
+                      <strong>{lsr.count}</strong> reports &bull; <strong className="text-rose-600">{lsr.sif_count} SIFs</strong>
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
+                    <div
+                      className="bg-indigo-600 h-full rounded-full"
+                      style={{ width: `${Math.min(lsr.percentage * 2, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))
             )}
-            <span className="text-slate-700 font-semibold">View All</span>
+          </div>
+        </div>
+
+        {/* Core Question 3: Top Recurring Barrier Failures */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-rose-600" />
+              <h3 className="text-sm font-bold text-slate-900">Top Recurring Barrier Failures</h3>
+            </div>
+            <Link to="/analytics" className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+              <span>View All</span>
+              <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="space-y-2.5">
+            {topBarriers.length === 0 ? (
+              <p className="text-xs text-slate-400 italic py-2">No barrier failure data available.</p>
+            ) : (
+              topBarriers.map((b, idx) => (
+                <div key={idx} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <div className="font-bold text-slate-900">{b.barrier_name}</div>
+                    <div className="text-[10px] text-slate-500">Hierarchy: <span className="font-semibold text-slate-700">{b.hierarchy_level}</span></div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      {b.failure_count} Failures
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -477,23 +566,22 @@ export const DashboardPlaceholder = () => {
             )}
           </div>
 
-          {/* Top Recurring Hazards Distribution */}
+          {/* Highest-Risk Operational Activities */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-900">Hazard Category Recurrence Distribution</h3>
+            <h3 className="text-sm font-bold text-slate-900">Highest-Risk Operational Activities</h3>
             <div className="space-y-3">
-              {hazards.map((h, idx) => (
+              {topActivities.map((act, idx) => (
                 <div key={idx} className="space-y-1 text-xs">
                   <div className="flex items-center justify-between font-medium">
-                    <span className="text-slate-800 font-bold">{h.hazard}</span>
+                    <span className="text-slate-800 font-bold">{act.activity}</span>
                     <span className="text-slate-500">
-                      <strong>{h.count}</strong> incidents ({h.percentage}%)
-                      {h.sif_count > 0 && <span className="text-rose-600 font-bold"> &bull; {h.sif_count} SIFs</span>}
+                      <strong>{act.count}</strong> reports &bull; <span className="text-purple-700 font-semibold">{act.sif_density}% SIF Density</span>
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${h.sif_count > 0 ? 'bg-rose-500' : 'bg-slate-800'}`}
-                      style={{ width: `${Math.min(h.percentage * 1.5, 100)}%` }}
+                      className="h-full rounded-full bg-slate-800"
+                      style={{ width: `${Math.min(act.percentage * 2, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -507,7 +595,7 @@ export const DashboardPlaceholder = () => {
           {/* Quick Action Navigation Launchpad */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-              Administration Launchpad
+              Safety Intelligence Launchpad
             </h3>
             <div className="grid grid-cols-1 gap-2 text-xs font-semibold">
               <button
@@ -516,7 +604,7 @@ export const DashboardPlaceholder = () => {
               >
                 <span className="flex items-center gap-2">
                   <BrainCircuit className="w-4 h-4 text-slate-700" />
-                  <span>AI Safety Intelligence</span>
+                  <span>Explainable AI Pipeline & Sandbox</span>
                 </span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -527,7 +615,7 @@ export const DashboardPlaceholder = () => {
               >
                 <span className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-slate-700" />
-                  <span>Safety Analytics</span>
+                  <span>SIF Density Analytics</span>
                 </span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -549,7 +637,7 @@ export const DashboardPlaceholder = () => {
               >
                 <span className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-slate-700" />
-                  <span>Export Data</span>
+                  <span>Export HSE Reports</span>
                 </span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -560,7 +648,7 @@ export const DashboardPlaceholder = () => {
               >
                 <span className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-slate-700" />
-                  <span>Manage Users</span>
+                  <span>Manage Users & Roles</span>
                 </span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -571,7 +659,7 @@ export const DashboardPlaceholder = () => {
               >
                 <span className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-slate-700" />
-                  <span>Plant Departments</span>
+                  <span>Oilfield Facilities & Sites</span>
                 </span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -613,8 +701,8 @@ export const DashboardPlaceholder = () => {
                   </div>
                   <div className="text-[11px] text-slate-500 flex items-center justify-between">
                     <span>{p.frequency_count} incidents in cluster</span>
-                    {p.trend_percentage > 0 && (
-                      <span className="text-rose-600 font-bold">+{p.trend_percentage}% trend</span>
+                    {p.sif_density > 0 && (
+                      <span className="text-purple-700 font-bold">{p.sif_density}% SIF</span>
                     )}
                   </div>
                 </div>

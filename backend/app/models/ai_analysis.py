@@ -26,20 +26,50 @@ class AiAnalysis(Base):
     # Structured intelligence attributes
     hazards = Column(JSON, nullable=False, default=list)
     control_failures = Column(JSON, nullable=False, default=list)
+    failed_barriers = Column(JSON, nullable=False, default=list)
     worker_exposure = Column(JSON, nullable=False, default=dict)
+    
+    # Activity intelligence
+    activity = Column(String(100), nullable=True, index=True)
+    activity_category = Column(String(100), nullable=True, index=True)
+    activity_confidence = Column(Float, nullable=False, default=0.85)
+    
+    # IOGP Life-Saving Rule intelligence
+    life_saving_rule = Column(String(100), nullable=True, index=True)
+    life_saving_rule_confidence = Column(Float, nullable=False, default=0.85)
+    life_saving_rule_evidence = Column(JSON, nullable=False, default=list)
+
+    # Actual vs Potential Consequence
+    actual_consequence = Column(String(100), nullable=False, default="No injury")
+    potential_consequence = Column(String(255), nullable=False, default="")
+    potential_consequence_severity = Column(String(50), nullable=False, default="NONE")  # NONE, MINOR, MODERATE, CRITICAL, FATAL
+    fatality_potential = Column(Boolean, nullable=False, default=False)
+
+    # SIF Precursor Intelligence
     sif_precursor = Column(Boolean, nullable=False, default=False)
     sif_categories = Column(JSON, nullable=False, default=list)
     sif_level = Column(String(50), nullable=False, default="NONE")  # NONE, LOW, MEDIUM, HIGH, CRITICAL
     sif_precursors = Column(JSON, nullable=False, default=list)
     sif_detected = Column(Boolean, nullable=False, default=False)
+    sif_reasoning = Column(Text, nullable=False, default="")
+
     risk_score = Column(Float, nullable=False, default=0.0)         # 0.0 to 100.0
     risk_level = Column(String(50), nullable=False, default="LOW")  # LOW, MEDIUM, HIGH, CRITICAL
     explanation = Column(Text, nullable=False, default="")
     highlighted_evidence = Column(JSON, nullable=False, default=list)
+    evidence_snippets = Column(JSON, nullable=False, default=list)
     recommendations = Column(JSON, nullable=False, default=list)
     similar_incidents = Column(JSON, nullable=False, default=dict)
     embedding = Column(JSON, nullable=True)
     model_metadata = Column(JSON, nullable=False, default=dict)
+
+    # Human-In-The-Loop HSE Review & Governance
+    review_status = Column(String(50), nullable=False, default="PENDING", index=True)  # PENDING, CONFIRMED, OVERRIDDEN
+    reviewed_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    original_ai_decision = Column(JSON, nullable=True)
+    final_hse_decision = Column(JSON, nullable=True)
+    review_comment = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
@@ -51,6 +81,7 @@ class AiAnalysis(Base):
 
     # Relationships
     report = relationship("SafetyReport", back_populates="ai_analysis")
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
 
     def __repr__(self) -> str:
         return (

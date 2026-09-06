@@ -1,6 +1,41 @@
 import math
+import logging
 from typing import Dict, Any, Optional, List
 from app.ai.interfaces import BaseSimilarityEngine, PreprocessedText, SimilarityResult
+
+logger = logging.getLogger(__name__)
+
+
+class SemanticEmbeddingProvider:
+    """
+    Modular Semantic Embedding Provider.
+    Attempts local lightweight transformer sentence embedding;
+    gracefully falls back to domain-weighted feature representation if transformers are not installed.
+    """
+    _model = None
+    _is_transformer = False
+
+    @classmethod
+    def get_embedding(cls, text: str, fallback_vector: List[float]) -> List[float]:
+        if cls._model is None:
+            try:
+                # Optional import for sentence-transformers
+                from sentence_transformers import SentenceTransformer
+                cls._model = SentenceTransformer("all-MiniLM-L6-v2")
+                cls._is_transformer = True
+                logger.info("Loaded SentenceTransformer for semantic NLP similarity.")
+            except Exception:
+                cls._is_transformer = False
+                cls._model = "FALLBACK"
+
+        if cls._is_transformer and cls._model != "FALLBACK":
+            try:
+                emb = cls._model.encode(text, normalize_embeddings=True)
+                return [round(float(x), 4) for x in emb.tolist()]
+            except Exception as e:
+                logger.warning(f"Transformer embedding failed: {e}. Using domain vector.")
+
+        return fallback_vector
 
 
 class SimilarityService(BaseSimilarityEngine):
@@ -11,7 +46,7 @@ class SimilarityService(BaseSimilarityEngine):
     """
 
     VOCABULARY_AXES = [
-        # Domain Hazard Concepts (Indices 0-14)
+        # Domain Hazard Concepts
         "confined space tank vessel manhole entry vault silo asphyxiation oxygen gas testing",
         "working at height elevation scaffold scaffolding ladder platform roof drop edge",
         "electrical voltage energized busbar switchgear transformer arc flash shock 6.6kv",
@@ -24,7 +59,7 @@ class SimilarityService(BaseSimilarityEngine):
         "pressure steam pressurized relief valve hydraulic burst line leak",
         "slip trip wet floor housekeeping puddle spill surface",
         
-        # Critical Control Failures (Indices 11-15)
+        # Critical Control Failures
         "without atmospheric testing no gas test untested atmosphere",
         "no standby person without attendant entered alone",
         "without fall protection no harness missing guardrail",
@@ -62,7 +97,7 @@ class SimilarityService(BaseSimilarityEngine):
         if any(w in cleaned_lower for w in ["overhead", "dropped", "fell", "crane", "rigging", "sling"]):
             matched_tags.append("SUSPENDED_LOAD")
 
-        # Build dense semantic vector (16-dimensional continuous feature vector)
+        # Build dense domain feature vector
         vector: List[float] = []
         for axis_words in self.VOCABULARY_AXES:
             axis_tokens = axis_words.split()
@@ -72,19 +107,22 @@ class SimilarityService(BaseSimilarityEngine):
                     score += 1.0
             vector.append(score)
 
-        # Append hazard density & token length normalized features
+        # Append hazard density
         vector.append(float(len(hazards)))
 
-        # Normalize vector to unit length (L2 norm) for fast exact cosine distance
+        # Normalize vector (L2 norm)
         norm = math.sqrt(sum(x * x for x in vector))
         if norm > 0:
             normalized_vector = [round(x / norm, 4) for x in vector]
         else:
             normalized_vector = [0.0] * len(vector)
 
+        # Obtain dense embedding (via modular provider)
+        dense_embedding = SemanticEmbeddingProvider.get_embedding(cleaned_lower, normalized_vector)
+
         return SimilarityResult(
             feature_vector=normalized_vector,
-            embedding=normalized_vector,
+            embedding=dense_embedding,
             similarity_tags=matched_tags,
             is_prototype=False,
         )

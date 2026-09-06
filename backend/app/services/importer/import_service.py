@@ -238,6 +238,17 @@ class ImportService:
             else:
                 valid_cnt += 1
 
+            # Ground-truth evaluation fields (if present in input file)
+            is_sif_val = None
+            if "is_sif" in rec and rec["is_sif"] is not None:
+                s_str = str(rec["is_sif"]).strip().lower()
+                is_sif_val = s_str in ["true", "1", "yes", "t", "y", "sif"]
+            
+            fatality_val = None
+            if "fatality_potential" in rec and rec["fatality_potential"] is not None:
+                f_str = str(rec["fatality_potential"]).strip().lower()
+                fatality_val = f_str in ["true", "1", "yes", "t", "y"]
+
             row_preview = ImportedRowPreview(
                 row_number=row_num,
                 page_number=page_num,
@@ -254,6 +265,12 @@ class ImportService:
                 validation_status=row_status,
                 validation_messages=messages,
                 is_duplicate=is_dup,
+                is_sif=is_sif_val,
+                life_saving_rule=rec.get("life_saving_rule"),
+                failed_barrier=rec.get("failed_barrier"),
+                actual_consequence=rec.get("actual_consequence"),
+                potential_consequence=rec.get("potential_consequence"),
+                fatality_potential=fatality_val,
             )
             parsed_rows.append(row_preview)
 
@@ -415,6 +432,12 @@ class ImportService:
                 source_row=row_num,
                 source_page=row_dict.get("page_number"),
                 import_batch_id=batch.id,
+                is_sif=row_dict.get("is_sif"),
+                life_saving_rule=row_dict.get("life_saving_rule"),
+                failed_barrier=row_dict.get("failed_barrier"),
+                actual_consequence=row_dict.get("actual_consequence") or "No injury",
+                potential_consequence=row_dict.get("potential_consequence"),
+                fatality_potential=row_dict.get("fatality_potential") or False,
             )
             db.add(new_report)
             imported_reports.append(new_report)

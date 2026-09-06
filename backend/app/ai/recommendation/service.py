@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.ai.interfaces import (
     BaseRecommendationEngine,
     SifDetectionResult,
@@ -126,6 +126,7 @@ class RecommendationService(BaseRecommendationEngine):
         control_failures: List[Dict[str, Any]],
         sif_result: SifDetectionResult,
         risk_result: RiskEngineResult,
+        life_saving_rule: Optional[Any] = None,
     ) -> RecommendationResult:
         recommendations: List[Dict[str, Any]] = []
         hazard_categories = {h.get("category") for h in hazards}

@@ -22,6 +22,8 @@ from app.schemas.ai_analysis import (
     AiAnalysisResponse,
     AiAnalysisTriggerResponse,
     SimilarIncidentsResponse,
+    HseReviewRequest,
+    HseReviewResponse,
 )
 from app.services.case_id import generate_unique_case_id
 from app.services.analysis import analysis_service
@@ -89,6 +91,15 @@ def create_report(
         incident_type=report_in.incident_type,
         description=report_in.description.strip(),
         reported_at=reported_at,
+        activity=report_in.activity,
+        activity_category=report_in.activity_category,
+        site=report_in.site,
+        field=report_in.field,
+        installation=report_in.installation,
+        actual_consequence=report_in.actual_consequence or "No injury",
+        potential_consequence=report_in.potential_consequence,
+        fatality_potential=report_in.fatality_potential or False,
+        life_saving_rule=report_in.life_saving_rule,
         created_by=current_user.id,
         processing_status=ProcessingStatus.SUBMITTED,
     )
@@ -453,3 +464,78 @@ def get_similar_reports(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Could not calculate similar incidents: {str(exc)}",
         )
+
+
+@router.post(
+    "/{report_id}/review",
+    response_model=HseReviewResponse,
+    summary="HSE Human-in-the-Loop Review (Confirm / Override)",
+    description="Allows HSE officers to review, confirm, or override AI safety intelligence classifications.",
+)
+def review_report_analysis(
+    report_id: str,
+    review_in: HseReviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+) -> HseReviewResponse:
+    """
+    Submits an HSE human confirmation or override decision for an AI safety assessment.
+    """
+    if report_id.isdigit():
+        report = db.query(SafetyReport).filter(SafetyReport.id == int(report_id)).first()
+    else:
+        report = db.query(SafetyReport).filter(SafetyReport.case_id == report_id).first()
+
+    if not report:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Safety Report '{report_id}' was not found.",
+        )
+
+    try:
+        updated_analysis = analysis_service.review_analysis(
+            report_id=report.id,
+            action=review_in.action,
+            reviewer_id=current_user.id,
+            sif_level=review_in.sif_level,
+            life_saving_rule=review_in.life_saving_rule,
+            risk_score=review_in.risk_score,
+            comment=review_in.comment,
+            db=db,
+        )
+
+        # Audit logging
+        audit_service.log_event(
+            db=db,
+            action="HSE_REVIEW",
+            user_id=current_user.id,
+            entity_type="REPORT_ANALYSIS",
+            entity_id=str(report.id),
+            details={
+                "action": review_in.action,
+                "sif_level": updated_analysis.sif_level,
+                "review_status": updated_analysis.review_status,
+                "comment": review_in.comment,
+            },
+        )
+
+        return HseReviewResponse(
+            success=True,
+            message=f"AI Safety Assessment successfully {updated_analysis.review_status.lower()}.",
+            report_id=report.id,
+            review_status=updated_analysis.review_status,
+            reviewed_at=updated_analysis.reviewed_at or datetime.utcnow(),
+            final_decision=updated_analysis.final_hse_decision or {},
+        )
+    except ValueError as val_err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(val_err),
+        )
+    except Exception as exc:
+        logger.error(f"HSE Review failed for report {report.id}: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Review processing failed: {str(exc)}",
+        )
+

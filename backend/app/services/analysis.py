@@ -1,5 +1,6 @@
 import math
 import logging
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 
@@ -71,9 +72,11 @@ class AnalysisService:
                 "case_id": report.case_id,
                 "job_role": report.job_role,
                 "task": report.task,
+                "activity": report.activity,
                 "incident_type": report.incident_type.value if hasattr(report.incident_type, "value") else str(report.incident_type),
                 "department_id": report.department_id,
                 "location_id": report.location_id,
+                "actual_consequence": report.actual_consequence,
             }
 
             # Combine task and description for rich NLP processing
@@ -84,6 +87,20 @@ class AnalysisService:
                 text=full_text,
                 context=context,
             )
+
+            # Update report domain fields if not set
+            if not report.activity:
+                report.activity = result.activity
+            if not report.activity_category:
+                report.activity_category = result.activity_category
+            if not report.actual_consequence or report.actual_consequence == "No injury":
+                report.actual_consequence = result.actual_consequence
+            if not report.potential_consequence:
+                report.potential_consequence = result.potential_consequence
+            if report.fatality_potential is None:
+                report.fatality_potential = result.fatality_potential
+            if not report.life_saving_rule:
+                report.life_saving_rule = result.life_saving_rule
 
             # 3. Compute Semantic Similarity with historical reports
             similar_summary = self._compute_historical_similarity(
@@ -102,20 +119,34 @@ class AnalysisService:
                     model_name=result.model_name,
                     hazards=result.hazards,
                     control_failures=result.control_failures,
+                    failed_barriers=result.failed_barriers,
                     worker_exposure=result.worker_exposure,
+                    activity=result.activity,
+                    activity_category=result.activity_category,
+                    activity_confidence=result.activity_confidence,
+                    life_saving_rule=result.life_saving_rule,
+                    life_saving_rule_confidence=result.life_saving_rule_confidence,
+                    life_saving_rule_evidence=result.life_saving_rule_evidence,
+                    actual_consequence=result.actual_consequence,
+                    potential_consequence=result.potential_consequence,
+                    potential_consequence_severity=result.potential_consequence_severity,
+                    fatality_potential=result.fatality_potential,
                     sif_precursor=result.sif_precursor,
                     sif_categories=result.sif_categories,
                     sif_level=result.sif_level,
                     sif_precursors=result.sif_precursors,
                     sif_detected=result.sif_detected,
+                    sif_reasoning=result.sif_reasoning,
                     risk_score=result.risk_score,
                     risk_level=result.risk_level,
                     explanation=result.explanation,
                     highlighted_evidence=result.highlighted_evidence,
+                    evidence_snippets=result.evidence_snippets,
                     recommendations=result.recommendations,
                     similar_incidents=similar_summary,
                     embedding=result.feature_vector,
                     model_metadata=result.model_metadata,
+                    review_status="PENDING",
                 )
                 db.add(analysis)
             else:
@@ -124,16 +155,29 @@ class AnalysisService:
                 analysis.model_name = result.model_name
                 analysis.hazards = result.hazards
                 analysis.control_failures = result.control_failures
+                analysis.failed_barriers = result.failed_barriers
                 analysis.worker_exposure = result.worker_exposure
+                analysis.activity = result.activity
+                analysis.activity_category = result.activity_category
+                analysis.activity_confidence = result.activity_confidence
+                analysis.life_saving_rule = result.life_saving_rule
+                analysis.life_saving_rule_confidence = result.life_saving_rule_confidence
+                analysis.life_saving_rule_evidence = result.life_saving_rule_evidence
+                analysis.actual_consequence = result.actual_consequence
+                analysis.potential_consequence = result.potential_consequence
+                analysis.potential_consequence_severity = result.potential_consequence_severity
+                analysis.fatality_potential = result.fatality_potential
                 analysis.sif_precursor = result.sif_precursor
                 analysis.sif_categories = result.sif_categories
                 analysis.sif_level = result.sif_level
                 analysis.sif_precursors = result.sif_precursors
                 analysis.sif_detected = result.sif_detected
+                analysis.sif_reasoning = result.sif_reasoning
                 analysis.risk_score = result.risk_score
                 analysis.risk_level = result.risk_level
                 analysis.explanation = result.explanation
                 analysis.highlighted_evidence = result.highlighted_evidence
+                analysis.evidence_snippets = result.evidence_snippets
                 analysis.recommendations = result.recommendations
                 analysis.similar_incidents = similar_summary
                 analysis.embedding = result.feature_vector
@@ -149,7 +193,8 @@ class AnalysisService:
 
             logger.info(
                 f"Report {report.case_id} (ID: {report.id}) successfully analyzed. "
-                f"Risk: {result.risk_level} ({result.risk_score}), SIF Precursor: {result.sif_precursor}"
+                f"Risk: {result.risk_level} ({result.risk_score}), SIF Precursor: {result.sif_precursor}, "
+                f"LSR: {result.life_saving_rule}"
             )
 
             # 6. Trigger Pattern & Early Warning Engine evaluation
@@ -179,6 +224,7 @@ class AnalysisService:
                         model_name=self.pipeline.MODEL_NAME,
                         hazards=[],
                         control_failures=[],
+                        failed_barriers=[],
                         worker_exposure={},
                         sif_precursor=False,
                         sif_categories=[],
@@ -211,6 +257,88 @@ class AnalysisService:
 
             return analysis
 
+    def review_analysis(
+        self,
+        report_id: int,
+        action: str,
+        reviewer_id: int,
+        sif_level: Optional[str],
+        life_saving_rule: Optional[str],
+        risk_score: Optional[float],
+        comment: Optional[str],
+        db: Session,
+    ) -> AiAnalysis:
+        """
+        Allows HSE professionals to confirm or override AI safety intelligence decisions.
+        Records an audit trail and updates downstream metrics.
+        """
+        analysis = db.query(AiAnalysis).filter(AiAnalysis.report_id == report_id).first()
+        if not analysis:
+            raise ValueError(f"No AI analysis found for report {report_id}.")
+
+        action_upper = action.strip().upper()
+        now = datetime.utcnow()
+
+        if action_upper == "CONFIRM":
+            analysis.review_status = "CONFIRMED"
+            analysis.reviewed_by = reviewer_id
+            analysis.reviewed_at = now
+            analysis.review_comment = comment or "AI safety classification confirmed by HSE officer."
+            analysis.final_hse_decision = {
+                "sif_precursor": analysis.sif_precursor,
+                "sif_level": analysis.sif_level,
+                "risk_score": analysis.risk_score,
+                "life_saving_rule": analysis.life_saving_rule,
+                "action": "CONFIRMED",
+            }
+        elif action_upper == "OVERRIDE":
+            # Save original AI decision if not already preserved
+            if not analysis.original_ai_decision:
+                analysis.original_ai_decision = {
+                    "sif_precursor": analysis.sif_precursor,
+                    "sif_level": analysis.sif_level,
+                    "risk_score": analysis.risk_score,
+                    "life_saving_rule": analysis.life_saving_rule,
+                }
+
+            analysis.review_status = "OVERRIDDEN"
+            analysis.reviewed_by = reviewer_id
+            analysis.reviewed_at = now
+            analysis.review_comment = comment or "AI decision overridden by HSE officer."
+
+            # Apply overrides
+            if sif_level:
+                analysis.sif_level = sif_level.upper()
+                analysis.sif_precursor = analysis.sif_level in ["MEDIUM", "HIGH", "CRITICAL"]
+                analysis.sif_detected = analysis.sif_precursor
+            if life_saving_rule:
+                analysis.life_saving_rule = life_saving_rule
+            if risk_score is not None:
+                analysis.risk_score = float(risk_score)
+                if analysis.risk_score >= 75.0:
+                    analysis.risk_level = "CRITICAL"
+                elif analysis.risk_score >= 50.0:
+                    analysis.risk_level = "HIGH"
+                elif analysis.risk_score >= 25.0:
+                    analysis.risk_level = "MEDIUM"
+                else:
+                    analysis.risk_level = "LOW"
+
+            analysis.final_hse_decision = {
+                "sif_precursor": analysis.sif_precursor,
+                "sif_level": analysis.sif_level,
+                "risk_score": analysis.risk_score,
+                "life_saving_rule": analysis.life_saving_rule,
+                "action": "OVERRIDDEN",
+            }
+        else:
+            raise ValueError(f"Invalid review action: '{action}'. Must be 'CONFIRM' or 'OVERRIDE'.")
+
+        db.add(analysis)
+        db.commit()
+        db.refresh(analysis)
+        return analysis
+
     def _compute_historical_similarity(
         self,
         current_report_id: int,
@@ -237,7 +365,6 @@ class AnalysisService:
                 continue
 
             sim_score = compute_cosine_similarity(current_vector, other_vec)
-            # Threshold for semantic relevance (e.g. >= 0.50)
             if sim_score >= 0.40:
                 rep: Optional[SafetyReport] = other_a.report
                 if not rep:
@@ -299,7 +426,6 @@ class AnalysisService:
         """
         analysis = db.query(AiAnalysis).filter(AiAnalysis.report_id == report_id).first()
         if not analysis or not analysis.embedding:
-            # Run quick feature extraction if no embedding
             report = db.query(SafetyReport).filter(SafetyReport.id == report_id).first()
             if not report:
                 raise ValueError(f"Report {report_id} not found.")

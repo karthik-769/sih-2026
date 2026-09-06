@@ -14,6 +14,10 @@ import {
   FileText,
   CheckCircle2,
   ExternalLink,
+  Shield,
+  ShieldAlert,
+  Activity,
+  PlusCircle,
 } from 'lucide-react';
 import { getPatternByIdApi } from '../services/api';
 
@@ -78,8 +82,8 @@ export const PatternDetailsPage = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
-      {/* Back Button */}
-      <div>
+      {/* Back & Action Buttons */}
+      <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/patterns')}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
@@ -87,18 +91,31 @@ export const PatternDetailsPage = () => {
           <ChevronLeft className="w-4 h-4" />
           <span>Back to Patterns Registry</span>
         </button>
+
+        <button
+          onClick={() => navigate('/corrective-actions', { state: { patternId: pattern.id, title: pattern.title } })}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+        >
+          <PlusCircle className="w-3.5 h-3.5" />
+          <span>Create Corrective Action</span>
+        </button>
       </div>
 
       {/* Header Banner */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className={`px-2.5 py-1 rounded text-xs uppercase tracking-wider border ${getSeverityBadge(pattern.risk_level)}`}>
               {pattern.risk_level} RISK &bull; Score {pattern.risk_score} / 100
             </span>
             <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
               {pattern.pattern_key}
             </span>
+            {pattern.sif_density > 0 && (
+              <span className="text-xs font-bold font-mono text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded border border-purple-200">
+                {pattern.sif_density}% SIF Precursor Density
+              </span>
+            )}
           </div>
 
           <div className="text-xs text-slate-500">
@@ -118,6 +135,16 @@ export const PatternDetailsPage = () => {
             {pattern.department_name && (
               <span className="flex items-center gap-1.5 font-medium">
                 <Building2 className="w-4 h-4 text-slate-400" /> {pattern.department_name}
+              </span>
+            )}
+            {pattern.activity && (
+              <span className="flex items-center gap-1.5 font-semibold text-slate-800">
+                <Activity className="w-4 h-4 text-indigo-500" /> {pattern.activity}
+              </span>
+            )}
+            {pattern.life_saving_rule && (
+              <span className="flex items-center gap-1.5 font-semibold text-indigo-700">
+                <Shield className="w-4 h-4 text-indigo-600" /> LSR: {pattern.life_saving_rule}
               </span>
             )}
             <span className="flex items-center gap-1.5 font-semibold text-slate-900">
@@ -190,7 +217,7 @@ export const PatternDetailsPage = () => {
                     {rep.department_name} &bull; {rep.location_name}
                   </span>
                 </div>
-                <p className="text-xs text-slate-700">{rep.description}</p>
+                <p className="text-xs text-slate-700 font-mono text-[11px]">{rep.description}</p>
               </div>
 
               <Link
@@ -207,3 +234,5 @@ export const PatternDetailsPage = () => {
     </div>
   );
 };
+
+export default PatternDetailsPage;

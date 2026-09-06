@@ -20,6 +20,17 @@ class SafetyReportBase(BaseModel):
         description="Factual, unedited description of what occurred",
     )
     reported_at: Optional[datetime] = Field(default=None, description="Datetime when event occurred")
+    activity: Optional[str] = Field(default=None, description="Inferred or declared operational activity")
+    activity_category: Optional[str] = Field(default=None, description="Operational activity group")
+    site: Optional[str] = Field(default=None, description="Specific rig, plant unit, or facility site")
+    field: Optional[str] = Field(default=None, description="Oil field or basin")
+    installation: Optional[str] = Field(default=None, description="Installation or asset name")
+    actual_consequence: Optional[str] = Field(default="No injury", description="Observed consequence outcome")
+    potential_consequence: Optional[str] = Field(default=None, description="Worst-case credible outcome")
+    fatality_potential: Optional[bool] = Field(default=False, description="Flag indicating potential for fatality")
+    life_saving_rule: Optional[str] = Field(default=None, description="Associated IOGP Life-Saving Rule")
+    failed_barrier: Optional[str] = Field(default=None, description="Ground-truth failed barrier label")
+    is_sif: Optional[bool] = Field(default=None, description="Ground-truth SIF label for evaluation")
 
 
 class SafetyReportCreate(SafetyReportBase):
@@ -34,6 +45,17 @@ class SafetyReportUpdate(BaseModel):
     incident_type: Optional[IncidentType] = None
     description: Optional[str] = Field(default=None, min_length=10, max_length=3000)
     processing_status: Optional[ProcessingStatus] = None
+    activity: Optional[str] = None
+    activity_category: Optional[str] = None
+    site: Optional[str] = None
+    field: Optional[str] = None
+    installation: Optional[str] = None
+    actual_consequence: Optional[str] = None
+    potential_consequence: Optional[str] = None
+    fatality_potential: Optional[bool] = None
+    life_saving_rule: Optional[str] = None
+    failed_barrier: Optional[str] = None
+    is_sif: Optional[bool] = None
 
 
 class SafetyReportResponse(SafetyReportBase):
@@ -41,6 +63,7 @@ class SafetyReportResponse(SafetyReportBase):
     case_id: str
     created_by: Optional[int] = None
     processing_status: ProcessingStatus
+    source_type: Optional[str] = "MANUAL"
     created_at: datetime
     updated_at: datetime
     department: Optional[DepartmentResponse] = None

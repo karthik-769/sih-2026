@@ -51,6 +51,24 @@ class ColumnMapper:
             "narrative", "observation", "what happened", "findings", "verbatim description",
             "hazard details", "incident details", "summary", "notes", "remarks"
         ],
+        "is_sif": [
+            "is_sif", "is sif", "sif", "sif_precursor", "sif precursor", "expected_sif"
+        ],
+        "life_saving_rule": [
+            "life_saving_rule", "life saving rule", "lsr", "expected_lsr", "rule", "iogp rule"
+        ],
+        "failed_barrier": [
+            "failed_barrier", "failed barrier", "barrier", "failed control", "expected_barrier"
+        ],
+        "potential_consequence": [
+            "potential_consequence", "potential consequence", "worst case consequence"
+        ],
+        "fatality_potential": [
+            "fatality_potential", "fatality potential", "fatality"
+        ],
+        "actual_consequence": [
+            "actual_consequence", "actual consequence", "consequence", "outcome"
+        ],
     }
 
     INCIDENT_TYPE_MAP: Dict[str, str] = {
